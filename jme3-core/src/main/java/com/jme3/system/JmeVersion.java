@@ -46,13 +46,13 @@ public class JmeVersion {
     private static final Logger logger = Logger.getLogger(JmeVersion.class.getName());
     private static final Properties props = new Properties();
     
-    static {
-        try {
-            props.load(JmeVersion.class.getResourceAsStream("version.properties"));
-        } catch (IOException ex) {
-            logger.log(Level.WARNING, "Unable to read version info!", ex);
-        }
-    }
+//    static {
+//        try {
+//            props.load(JmeVersion.class.getResourceAsStream("version.properties"));
+//        } catch (IOException ex) {
+//            logger.log(Level.WARNING, "Unable to read version info!", ex);
+//        }
+//    }
     
     public static final String BUILD_DATE       = props.getProperty("build.date", "1900-01-01");
     public static final String BRANCH_NAME      = props.getProperty("git.branch", "unknown");
