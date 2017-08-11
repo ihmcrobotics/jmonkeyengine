@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>jme3-bullet-native-android</name>
+	<comment>Project jme3-bullet-native-android created by Buildship.</comment>
+	<projects>
+	</projects>
+	<buildSpec>
+		<buildCommand>
+			<name>org.eclipse.jdt.core.javabuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+		<buildCommand>
+			<name>org.eclipse.buildship.core.gradleprojectbuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+	</buildSpec>
+	<natures>
+		<nature>org.eclipse.jdt.core.javanature</nature>
+		<nature>org.eclipse.buildship.core.gradleprojectnature</nature>
+	</natures>
+	<linkedResources>
+		<link>
+			<name>cpp</name>
+			<type>2</type>
+			<location>C:/Users/shadylady/Documents/Workspaces/VRWorkSpace/jmonkeyengine/jme3-bullet-native/src/native/cpp</location>
+		</link>
+	</linkedResources>
+</projectDescription>
