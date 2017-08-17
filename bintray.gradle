@@ -10,8 +10,8 @@ bintray {
     configurations = ['archives']
     dryRun = false 
     pkg {
-        repo = 'org.jmonkeyengine'
-        userOrg = 'jmonkeyengine'
+        repo = 'maven-vendor'
+        userOrg = 'ihmcrobotics'
         name = project.name
         desc = POM_DESCRIPTION
         websiteUrl = POM_URL
@@ -23,7 +23,7 @@ bintray {
 
 bintrayUpload.dependsOn(writeFullPom)
 
-bintrayUpload.onlyIf {
-    (bintray_api_key.length() > 0) &&
-    !(version ==~ /.*SNAPSHOT/)
-}
+//bintrayUpload.onlyIf {
+//    (bintray_api_key.length() > 0) &&
+//    !(version ==~ /.*SNAPSHOT/)
+//}

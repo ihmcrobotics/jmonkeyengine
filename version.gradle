@@ -155,7 +155,7 @@ task configureVersionInfo {
             }
             jmeNbmUcSuffix += "nightly/" + jmeMainVersion + "/plugins"
             jmeFullVersion += "-${jmeRevision}"
-            jmePomVersion  += "-SNAPSHOT"
+            jmePomVersion  += "-Vendor"
             jmeNbmRevision = jmeRevision
         }
             
