@@ -42,7 +42,6 @@ import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.texture.FrameBuffer;
 import com.jme3.texture.Image.Format;
 import com.jme3.texture.Texture;
-import com.jme3.texture.Texture.MagFilter;
 import com.jme3.texture.Texture2D;
 import java.io.IOException;
 import java.util.Collection;
@@ -86,6 +85,14 @@ public abstract class Filter implements Savable {
         protected Texture2D renderedTexture;
         protected Texture2D depthTexture;
         protected Material passMaterial;
+        protected String name;
+
+        public Pass(String name) {
+            this.name = name;
+        }
+
+        public Pass() {
+        }
 
         /**
          * init the pass called internally
@@ -120,7 +127,7 @@ public abstract class Filter implements Savable {
 
 
         }
-        
+
         /**
          *  init the pass called internally
          * @param renderer
@@ -162,7 +169,7 @@ public abstract class Filter implements Savable {
 
         public void beforeRender() {
         }
-        
+
         public FrameBuffer getRenderFrameBuffer() {
             return renderFrameBuffer;
         }
@@ -198,20 +205,18 @@ public abstract class Filter implements Savable {
                 depthTexture.getImage().dispose();
             }  
         }
+
+        @Override
+        public String toString() {
+            return name == null ? super.toString() : name;
+        }
     }
 
     /**
-     * returns the default pass texture format
-     * default is {@link Format#RGB111110F}
-     * 
-     * @return
+     * returns the default pass texture format.
      */
-    protected Format getDefaultPassTextureFormat(RenderManager renderManager) {
-        if( renderManager.getRenderer().getCaps().contains(Caps.PackedFloatTexture) ) {
-            return Format.RGB111110F;
-        } else {
-            return Format.RGB8;
-        }
+    protected Format getDefaultPassTextureFormat() {
+        return processor.getDefaultPassTextureFormat();
     }
 
     /**
@@ -242,7 +247,7 @@ public abstract class Filter implements Savable {
     protected final void init(AssetManager manager, RenderManager renderManager, ViewPort vp, int w, int h) {
         //  cleanup(renderManager.getRenderer());
         defaultPass = new Pass();
-        defaultPass.init(renderManager.getRenderer(), w, h, getDefaultPassTextureFormat(renderManager), getDefaultPassDepthFormat());
+        defaultPass.init(renderManager.getRenderer(), w, h, getDefaultPassTextureFormat(), getDefaultPassDepthFormat());
         initFilter(manager, renderManager, vp, w, h);
     }
 

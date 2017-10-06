@@ -42,7 +42,7 @@ MaterialDef Post Shadow {
     }
 
     Technique {
-        VertexShader GLSL150:   Common/MatDefs/Shadow/PostShadowFilter15.vert
+        VertexShader GLSL150:   Common/MatDefs/Shadow/PostShadowFilter.vert
         FragmentShader GLSL150: Common/MatDefs/Shadow/PostShadowFilter15.frag
 
         WorldParameters {
@@ -59,8 +59,6 @@ MaterialDef Post Shadow {
             FADE : FadeInfo
             PSSM : Splits
             POINTLIGHT : LightViewProjectionMatrix5
-            //if no shadow map don't render shadows
-            RENDER_SHADOWS : ShadowMap0
             BACKFACE_SHADOWS : BackfaceShadows
         }
       

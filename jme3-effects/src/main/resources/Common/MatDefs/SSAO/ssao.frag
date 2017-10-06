@@ -1,9 +1,13 @@
+#import "Common/ShaderLib/GLSLCompat.glsllib"
+#import "Common/ShaderLib/MultiSample.glsllib"
+
 uniform vec2 g_Resolution;
+uniform vec2 g_ResolutionInverse;
 uniform vec2 m_FrustumNearFar;
-uniform sampler2D m_Texture;
+uniform COLORTEXTURE m_Texture;
 uniform sampler2D m_Normals;
 uniform sampler2D m_RandomMap;
-uniform sampler2D m_DepthTexture;
+uniform DEPTHTEXTURE m_DepthTexture;
 uniform vec3 m_FrustumCorner;
 uniform float m_SampleRadius;
 uniform float m_Intensity;
@@ -15,18 +19,28 @@ uniform vec2[4] m_Samples;
 
 varying vec2 texCoord;
 
-float depthv;
-
-vec3 getPosition(in vec2 uv){
+vec3 getPosition(float depthv, in vec2 uv){
   //Reconstruction from depth
-  depthv =texture2D(m_DepthTexture,uv).r;
-  float depth= (2.0 * m_FrustumNearFar.x) / (m_FrustumNearFar.y + m_FrustumNearFar.x - depthv* (m_FrustumNearFar.y-m_FrustumNearFar.x));
+  float depth = (2.0 * m_FrustumNearFar.x) / (m_FrustumNearFar.y + m_FrustumNearFar.x - depthv * (m_FrustumNearFar.y-m_FrustumNearFar.x));
 
   //one frustum corner method
   float x = mix(-m_FrustumCorner.x, m_FrustumCorner.x, uv.x);
   float y = mix(-m_FrustumCorner.y, m_FrustumCorner.y, uv.y);
 
-  return depth* vec3(x, y, m_FrustumCorner.z);
+  return depth * vec3(x, y, m_FrustumCorner.z);
+}
+
+vec3 approximateNormal(in vec3 pos,in vec2 texCoord){
+    float step = g_ResolutionInverse.x ;
+    float stepy = g_ResolutionInverse.y ;
+    float depth2 = getDepth(m_DepthTexture,texCoord + vec2(step,-stepy)).r;
+    float depth3 = getDepth(m_DepthTexture,texCoord + vec2(-step,-stepy)).r;
+    vec3 pos2 = vec3(getPosition(depth2,texCoord + vec2(step,-stepy)));
+    vec3 pos3 = vec3(getPosition(depth3,texCoord + vec2(-step,-stepy)));
+
+    vec3 v1 = (pos - pos2).xyz;
+    vec3 v2 = (pos3 - pos2).xyz;
+    return normalize(cross(-v1, v2));
 }
 
 vec3 getNormal(in vec2 uv){
@@ -34,12 +48,13 @@ vec3 getNormal(in vec2 uv){
 }
 
 vec2 getRandom(in vec2 uv){  
-   vec4 rand=texture2D(m_RandomMap,g_Resolution * uv / 128.0 * 3.0)*2.0 -1.0;
+   vec4 rand = texture2D(m_RandomMap,g_Resolution * uv / 128.0 * 3.0)*2.0 -1.0;
    return normalize(rand.xy);
 }
 
 float doAmbientOcclusion(in vec2 tc, in vec3 pos, in vec3 norm){
-   vec3 diff = getPosition(tc)- pos;
+   float depthv = getDepth(m_DepthTexture, tc).r;
+   vec3 diff = getPosition(depthv, tc)- pos;
    vec3 v = normalize(diff);
    float d = length(diff) * m_Scale;
 
@@ -48,24 +63,28 @@ float doAmbientOcclusion(in vec2 tc, in vec3 pos, in vec3 norm){
 
 vec2 reflection(in vec2 v1,in vec2 v2){
     vec2 result= 2.0 * dot(v2, v1) * v2;
-    result=v1-result;
+    result = v1-result;
     return result;
 }
 
-
-//const vec2 vec[4] = vec2[4](vec2(1.0,0.0), vec2(-1.0,0.0), vec2(0.0,1.0), vec2(0.0,-1.0));
 void main(){
 
    float result;
 
-   //vec2 vec[4] = { vec2(1.0, 0.0), vec2(-1.0, 0.0), vec2(0.0, 1.0), vec2(0.0, -1.0) };
-   vec3 position = getPosition(texCoord);
-    //optimization, do not calculate AO if depth is 1
-   if(depthv==1.0){
-        gl_FragColor=vec4(1.0);
-        return;
+   float depthv = getDepth(m_DepthTexture, texCoord).r;
+   //optimization, do not calculate AO if depth is 1
+   if(depthv == 1.0){
+           gl_FragColor = vec4(1.0);
+           return;
    }
-   vec3 normal = getNormal(texCoord);
+   vec3 position = getPosition(depthv, texCoord);
+
+   #ifdef APPROXIMATE_NORMALS
+        vec3 normal = approximateNormal(position, texCoord);
+   #else
+        vec3 normal = getNormal(texCoord);
+   #endif
+
    vec2 rand = getRandom(texCoord);
 
    float ao = 0.0;
@@ -85,5 +104,5 @@ void main(){
    ao /= float(iterations) * 4.0;
    result = 1.0 - ao;
 
-   gl_FragColor=vec4(result);
+   gl_FragColor = vec4(result);
 }

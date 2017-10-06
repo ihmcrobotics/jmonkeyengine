@@ -14,30 +14,24 @@ MaterialDef SSAO {
         Float Bias
         Vector2 FrustumNearFar
         Vector2Array Samples
+        Boolean ApproximateNormals
     }
 
     Technique {
-        VertexShader GLSL150:   Common/MatDefs/Post/Post15.vert
-        FragmentShader GLSL150: Common/MatDefs/SSAO/ssao15.frag
+        VertexShader GLSL150 GLSL120:   Common/MatDefs/Post/Post.vert
+        FragmentShader GLSL150 GLSL120: Common/MatDefs/SSAO/ssao.frag
 
-        WorldParameters {           
+        WorldParameters {
             WorldViewMatrix
             Resolution
+            ResolutionInverse
         }
 
         Defines {
             RESOLVE_MS : NumSamples
             RESOLVE_DEPTH_MS : NumSamplesDepth
+            APPROXIMATE_NORMALS : ApproximateNormals
         }
     }
 
-    Technique {
-        VertexShader GLSL120:   Common/MatDefs/Post/Post.vert
-        FragmentShader GLSL120: Common/MatDefs/SSAO/ssao.frag
-
-        WorldParameters {
-            WorldViewMatrix
-            Resolution
-        }
-    }
 }

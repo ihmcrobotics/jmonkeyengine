@@ -31,57 +31,51 @@
  */
 package com.jme3.audio.lwjgl;
 
-import com.jme3.audio.openal.ALC;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import org.lwjgl.openal.AL;
+import org.lwjgl.openal.ALC;
 import org.lwjgl.openal.ALC10;
-import static org.lwjgl.openal.ALC10.alcCloseDevice;
-import static org.lwjgl.openal.ALC10.alcCreateContext;
-import static org.lwjgl.openal.ALC10.alcMakeContextCurrent;
-import static org.lwjgl.openal.ALC10.alcOpenDevice;
 import org.lwjgl.openal.ALCCapabilities;
 import org.lwjgl.openal.SOFTPauseDevice;
 
-public class LwjglALC implements ALC {
+public class LwjglALC implements com.jme3.audio.openal.ALC {
 
-    private long contextId;
-    private long deviceId;
+    private long device;
+    private long context;
 
-    @Override
     public void createALC() {
-        // Can call "alc" functions at any time
-        deviceId = alcOpenDevice((ByteBuffer)null);
-        ALCCapabilities deviceCaps = org.lwjgl.openal.ALC.createCapabilities(deviceId);
-
-        contextId = alcCreateContext(deviceId, (IntBuffer)null);
-        alcMakeContextCurrent(contextId);
+        device = ALC10.alcOpenDevice((ByteBuffer) null);
+        ALCCapabilities deviceCaps = ALC.createCapabilities(device);
+        context = ALC10.alcCreateContext(device, (IntBuffer) null);
+        ALC10.alcMakeContextCurrent(context);
         AL.createCapabilities(deviceCaps);
     }
 
-    @Override
     public void destroyALC() {
-        if (deviceId != 0) {
-            alcCloseDevice(deviceId);
+        if (context != 0) {
+            ALC10.alcDestroyContext(context);
+            context = 0;
+        }
+
+        if (device != 0) {
+            ALC10.alcCloseDevice(device);
+            device = 0;
         }
     }
 
-    @Override
     public boolean isCreated() {
-        return contextId != 0;
+        return context != 0;
     }
 
-    @Override
     public String alcGetString(final int parameter) {
-        return ALC10.alcGetString(deviceId, parameter);
+        return ALC10.alcGetString(device, parameter);
     }
 
-    @Override
     public boolean alcIsExtensionPresent(final String extension) {
-        return ALC10.alcIsExtensionPresent(deviceId, extension);
+        return ALC10.alcIsExtensionPresent(device, extension);
     }
 
-    @Override
     public void alcGetInteger(final int param, final IntBuffer buffer, final int size) {
         if (buffer.position() != 0) {
             throw new AssertionError();
@@ -89,17 +83,15 @@ public class LwjglALC implements ALC {
         if (buffer.limit() != size) {
             throw new AssertionError();
         }
-        ALC10.alcGetIntegerv(deviceId, param, buffer);
+        ALC10.alcGetIntegerv(device, param, buffer);
     }
 
-    @Override
     public void alcDevicePauseSOFT() {
-        SOFTPauseDevice.alcDevicePauseSOFT(deviceId);
+        SOFTPauseDevice.alcDevicePauseSOFT(device);
     }
 
-    @Override
     public void alcDeviceResumeSOFT() {
-        SOFTPauseDevice.alcDeviceResumeSOFT(deviceId);
+        SOFTPauseDevice.alcDeviceResumeSOFT(device);
     }
 
 }

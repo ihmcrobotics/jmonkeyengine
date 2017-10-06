@@ -103,14 +103,19 @@ public final class GLImageFormats {
     public static GLImageFormat[][] getFormatsForCaps(EnumSet<Caps> caps) {
         GLImageFormat[][] formatToGL = new GLImageFormat[2][Image.Format.values().length];
         
+        int halfFloatFormat = GLExt.GL_HALF_FLOAT_ARB;
+        if (caps.contains(Caps.OpenGLES20)) {
+            halfFloatFormat = GLExt.GL_HALF_FLOAT_OES;
+        }
+        
         // Core Profile Formats (supported by both OpenGL Core 3.3 and OpenGL ES 3.0+)
         if (caps.contains(Caps.CoreProfile)) {
             formatSwiz(formatToGL,     Format.Alpha8,               GL3.GL_R8,                 GL.GL_RED,       GL.GL_UNSIGNED_BYTE);
             formatSwiz(formatToGL,     Format.Luminance8,           GL3.GL_R8,                 GL.GL_RED,       GL.GL_UNSIGNED_BYTE);
             formatSwiz(formatToGL,     Format.Luminance8Alpha8,     GL3.GL_RG8,                GL3.GL_RG,       GL.GL_UNSIGNED_BYTE);
-            formatSwiz(formatToGL,     Format.Luminance16F,         GL3.GL_R16F,               GL.GL_RED,       GLExt.GL_HALF_FLOAT_ARB);
+            formatSwiz(formatToGL,     Format.Luminance16F,         GL3.GL_R16F,               GL.GL_RED,       halfFloatFormat);
             formatSwiz(formatToGL,     Format.Luminance32F,         GL3.GL_R32F,               GL.GL_RED,       GL.GL_FLOAT);
-            formatSwiz(formatToGL,     Format.Luminance16FAlpha16F, GL3.GL_RG16F,              GL3.GL_RG,       GLExt.GL_HALF_FLOAT_ARB);
+            formatSwiz(formatToGL,     Format.Luminance16FAlpha16F, GL3.GL_RG16F,              GL3.GL_RG,       halfFloatFormat);
             
             formatSrgbSwiz(formatToGL, Format.Luminance8,           GLExt.GL_SRGB8_EXT,        GL.GL_RED,       GL.GL_UNSIGNED_BYTE);
             formatSrgbSwiz(formatToGL, Format.Luminance8Alpha8,     GLExt.GL_SRGB8_ALPHA8_EXT, GL3.GL_RG,       GL.GL_UNSIGNED_BYTE);
@@ -163,6 +168,11 @@ public final class GLImageFormats {
             }
             format(formatToGL, Format.RGB8,             GLExt.GL_RGBA8, GL.GL_RGB,             GL.GL_UNSIGNED_BYTE);
             format(formatToGL, Format.RGBA8,            GLExt.GL_RGBA8, GL.GL_RGBA,            GL.GL_UNSIGNED_BYTE);
+            
+            formatSwiz(formatToGL, Format.BGR8, GL2.GL_RGB8, GL2.GL_RGB, GL.GL_UNSIGNED_BYTE);
+            formatSwiz(formatToGL, Format.ARGB8, GLExt.GL_RGBA8, GL2.GL_RGBA, GL.GL_UNSIGNED_BYTE);
+            formatSwiz(formatToGL, Format.BGRA8, GLExt.GL_RGBA8, GL2.GL_RGBA, GL.GL_UNSIGNED_BYTE);
+            formatSwiz(formatToGL, Format.ABGR8, GLExt.GL_RGBA8, GL.GL_RGBA, GL.GL_UNSIGNED_BYTE);
         } else {
             // Actually, the internal format isn't used for OpenGL ES 2! This is the same as the above..
             if (!caps.contains(Caps.CoreProfile)) {
@@ -182,33 +192,38 @@ public final class GLImageFormats {
         
         if (caps.contains(Caps.FloatTexture)) {
             if (!caps.contains(Caps.CoreProfile)) {
-                format(formatToGL, Format.Luminance16F,         GLExt.GL_LUMINANCE16F_ARB,       GL.GL_LUMINANCE,       GLExt.GL_HALF_FLOAT_ARB);
+                format(formatToGL, Format.Luminance16F,         GLExt.GL_LUMINANCE16F_ARB,       GL.GL_LUMINANCE,       halfFloatFormat);
                 format(formatToGL, Format.Luminance32F,         GLExt.GL_LUMINANCE32F_ARB,       GL.GL_LUMINANCE,       GL.GL_FLOAT);
-                format(formatToGL, Format.Luminance16FAlpha16F, GLExt.GL_LUMINANCE_ALPHA16F_ARB, GL.GL_LUMINANCE_ALPHA, GLExt.GL_HALF_FLOAT_ARB);
+                format(formatToGL, Format.Luminance16FAlpha16F, GLExt.GL_LUMINANCE_ALPHA16F_ARB, GL.GL_LUMINANCE_ALPHA, halfFloatFormat);
             }
-            format(formatToGL, Format.RGB16F,               GLExt.GL_RGB16F_ARB,             GL.GL_RGB,             GLExt.GL_HALF_FLOAT_ARB);
+            format(formatToGL, Format.RGB16F,               GLExt.GL_RGB16F_ARB,             GL.GL_RGB,             halfFloatFormat);
             format(formatToGL, Format.RGB32F,               GLExt.GL_RGB32F_ARB,             GL.GL_RGB,             GL.GL_FLOAT);
-            format(formatToGL, Format.RGBA16F,              GLExt.GL_RGBA16F_ARB,            GL.GL_RGBA,            GLExt.GL_HALF_FLOAT_ARB);
+            format(formatToGL, Format.RGBA16F,              GLExt.GL_RGBA16F_ARB,            GL.GL_RGBA,            halfFloatFormat);
             format(formatToGL, Format.RGBA32F,              GLExt.GL_RGBA32F_ARB,            GL.GL_RGBA,            GL.GL_FLOAT);
         }
         if (caps.contains(Caps.PackedFloatTexture)) {
             format(formatToGL, Format.RGB111110F,           GLExt.GL_R11F_G11F_B10F_EXT,     GL.GL_RGB, GLExt.GL_UNSIGNED_INT_10F_11F_11F_REV_EXT);
             if (caps.contains(Caps.FloatTexture)) {
-                format(formatToGL, Format.RGB16F_to_RGB111110F, GLExt.GL_R11F_G11F_B10F_EXT, GL.GL_RGB, GLExt.GL_HALF_FLOAT_ARB);
+                format(formatToGL, Format.RGB16F_to_RGB111110F, GLExt.GL_R11F_G11F_B10F_EXT, GL.GL_RGB, halfFloatFormat);
             }
         }
         if (caps.contains(Caps.SharedExponentTexture)) {
             format(formatToGL, Format.RGB9E5, GLExt.GL_RGB9_E5_EXT, GL.GL_RGB, GLExt.GL_UNSIGNED_INT_5_9_9_9_REV_EXT);
             if (caps.contains(Caps.FloatTexture)) {
-                format(formatToGL, Format.RGB16F_to_RGB9E5,     GLExt.GL_RGB9_E5_EXT,         GL.GL_RGB, GLExt.GL_HALF_FLOAT_ARB);
+                format(formatToGL, Format.RGB16F_to_RGB9E5,     GLExt.GL_RGB9_E5_EXT,         GL.GL_RGB, halfFloatFormat);
             }
         }
         
         // Need to check if Caps.DepthTexture is supported prior to using for textures
         // But for renderbuffers its OK.
-        format(formatToGL, Format.Depth,   GL.GL_DEPTH_COMPONENT,    GL.GL_DEPTH_COMPONENT, GL.GL_UNSIGNED_BYTE);
         format(formatToGL, Format.Depth16, GL.GL_DEPTH_COMPONENT16,  GL.GL_DEPTH_COMPONENT, GL.GL_UNSIGNED_SHORT);
         
+        // NOTE: OpenGL ES 2.0 does not support DEPTH_COMPONENT as internal format -- fallback to 16-bit depth.
+        if (caps.contains(Caps.OpenGLES20)) {
+            format(formatToGL, Format.Depth, GL.GL_DEPTH_COMPONENT16, GL.GL_DEPTH_COMPONENT, GL.GL_UNSIGNED_BYTE);
+        } else {
+            format(formatToGL, Format.Depth, GL.GL_DEPTH_COMPONENT, GL.GL_DEPTH_COMPONENT, GL.GL_UNSIGNED_BYTE);
+        }
         if (caps.contains(Caps.OpenGL20)) {
             format(formatToGL, Format.Depth24, GL2.GL_DEPTH_COMPONENT24,  GL.GL_DEPTH_COMPONENT, GL.GL_UNSIGNED_INT);
         }
@@ -231,6 +246,37 @@ public final class GLImageFormats {
             formatComp(formatToGL, Format.ETC1, GLExt.GL_COMPRESSED_RGB8_ETC2, GL.GL_RGB, GL.GL_UNSIGNED_BYTE);
         } else if (caps.contains(Caps.TextureCompressionETC1)) {
             formatComp(formatToGL, Format.ETC1, GLExt.GL_ETC1_RGB8_OES,        GL.GL_RGB, GL.GL_UNSIGNED_BYTE);
+        }
+        
+        // Integer formats
+        if(caps.contains(Caps.IntegerTexture)) {     
+            format(formatToGL, Format.R8I, GL3.GL_R8I, GL3.GL_RED_INTEGER, GL.GL_BYTE);
+            format(formatToGL, Format.R8UI, GL3.GL_R8UI, GL3.GL_RED_INTEGER, GL.GL_UNSIGNED_BYTE);
+            format(formatToGL, Format.R16I, GL3.GL_R16I, GL3.GL_RED_INTEGER, GL.GL_SHORT);
+            format(formatToGL, Format.R16UI, GL3.GL_R16UI, GL3.GL_RED_INTEGER, GL.GL_UNSIGNED_SHORT);
+            format(formatToGL, Format.R32I, GL3.GL_R32I, GL3.GL_RED_INTEGER, GL.GL_INT);
+            format(formatToGL, Format.R32UI, GL3.GL_R32UI, GL3.GL_RED_INTEGER, GL.GL_UNSIGNED_INT);
+            
+            format(formatToGL, Format.RG8I, GL3.GL_RG8I, GL3.GL_RG_INTEGER, GL.GL_BYTE);
+            format(formatToGL, Format.RG8UI, GL3.GL_RG8UI, GL3.GL_RG_INTEGER, GL.GL_UNSIGNED_BYTE);
+            format(formatToGL, Format.RG16I, GL3.GL_RG16I, GL3.GL_RG_INTEGER, GL.GL_SHORT);
+            format(formatToGL, Format.RG16UI, GL3.GL_RG16UI, GL3.GL_RG_INTEGER, GL.GL_UNSIGNED_SHORT);
+            format(formatToGL, Format.RG32I, GL3.GL_RG32I, GL3.GL_RG_INTEGER, GL.GL_INT);
+            format(formatToGL, Format.RG32UI, GL3.GL_RG32UI, GL3.GL_RG_INTEGER, GL.GL_UNSIGNED_INT);
+            
+            format(formatToGL, Format.RGB8I, GL3.GL_RGB8I, GL3.GL_RGB_INTEGER, GL.GL_BYTE);
+            format(formatToGL, Format.RGB8UI, GL3.GL_RGB8UI, GL3.GL_RGB_INTEGER, GL.GL_UNSIGNED_BYTE);
+            format(formatToGL, Format.RGB16I, GL3.GL_RGB16I, GL3.GL_RGB_INTEGER, GL.GL_SHORT);
+            format(formatToGL, Format.RGB16UI, GL3.GL_RGB16UI, GL3.GL_RGB_INTEGER, GL.GL_UNSIGNED_SHORT);
+            format(formatToGL, Format.RGB32I, GL3.GL_RGB32I, GL3.GL_RGB_INTEGER, GL.GL_INT);
+            format(formatToGL, Format.RGB32UI, GL3.GL_RGB32UI, GL3.GL_RGB_INTEGER, GL.GL_UNSIGNED_INT);
+            
+            format(formatToGL, Format.RGBA8I, GL3.GL_RGBA8I, GL3.GL_RGBA_INTEGER, GL.GL_BYTE);
+            format(formatToGL, Format.RGBA8UI, GL3.GL_RGBA8UI, GL3.GL_RGBA_INTEGER, GL.GL_UNSIGNED_BYTE);
+            format(formatToGL, Format.RGBA16I, GL3.GL_RGBA16I, GL3.GL_RGBA_INTEGER, GL.GL_SHORT);
+            format(formatToGL, Format.RGBA16UI, GL3.GL_RGBA16UI, GL3.GL_RGBA_INTEGER, GL.GL_UNSIGNED_SHORT);
+            format(formatToGL, Format.RGBA32I, GL3.GL_RGBA32I, GL3.GL_RGBA_INTEGER, GL.GL_INT);
+            format(formatToGL, Format.RGBA32UI, GL3.GL_RGBA32UI, GL3.GL_RGBA_INTEGER, GL.GL_UNSIGNED_INT);
         }
         
         return formatToGL;

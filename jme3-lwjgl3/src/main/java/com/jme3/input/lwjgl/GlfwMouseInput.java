@@ -72,8 +72,8 @@ public class GlfwMouseInput implements MouseInput {
     private LwjglWindow context;
     private RawInputListener listener;
     private boolean cursorVisible = true;
-    private int mouseX, xDelta;
-    private int mouseY, yDelta;
+    private int mouseX;
+    private int mouseY;
     private int mouseWheel;
     private boolean initialized;
     private GLFWCursorPosCallback cursorPosCallback;
@@ -89,36 +89,38 @@ public class GlfwMouseInput implements MouseInput {
     }
 
     private void onCursorPos(long window, double xpos, double ypos) {
-                int x = (int) Math.round(xpos);
-                int y = context.getSettings().getHeight() - (int) Math.round(ypos);
+        int xDelta;
+        int yDelta;
+        int x = (int) Math.round(xpos);
+        int y = context.getSettings().getHeight() - (int) Math.round(ypos);
 
-                if (mouseX == 0) {
-                    mouseX = x;
-                }
+        if (mouseX == 0) {
+            mouseX = x;
+        }
 
-                if (mouseY == 0) {
-                    mouseY = y;
-                }
+        if (mouseY == 0) {
+            mouseY = y;
+        }
 
-                xDelta = x - mouseX;
-                yDelta = y - mouseY;
-                mouseX = x;
-                mouseY = y;
+        xDelta = x - mouseX;
+        yDelta = y - mouseY;
+        mouseX = x;
+        mouseY = y;
 
-                if (xDelta != 0 || yDelta != 0) {
-                    final MouseMotionEvent mouseMotionEvent = new MouseMotionEvent(x, y, xDelta, yDelta, mouseWheel, 0);
-                    mouseMotionEvent.setTime(getInputTimeNanos());
-                    mouseMotionEvents.add(mouseMotionEvent);
-                }
-            }
+        if (xDelta != 0 || yDelta != 0) {
+            final MouseMotionEvent mouseMotionEvent = new MouseMotionEvent(x, y, xDelta, yDelta, mouseWheel, 0);
+            mouseMotionEvent.setTime(getInputTimeNanos());
+            mouseMotionEvents.add(mouseMotionEvent);
+        }
+    }
 
     private void onWheelScroll(long window, double xOffset, double yOffset) {
-                mouseWheel += yOffset;
+        mouseWheel += yOffset;
+        final MouseMotionEvent mouseMotionEvent = new MouseMotionEvent(mouseX, mouseY, 0, 0, mouseWheel, (int) Math.round(yOffset));
+        mouseMotionEvent.setTime(getInputTimeNanos());
+        mouseMotionEvents.add(mouseMotionEvent);
+    }
 
-                final MouseMotionEvent mouseMotionEvent = new MouseMotionEvent(mouseX, mouseY, 0, 0, mouseWheel, (int) Math.round(yOffset));
-                mouseMotionEvent.setTime(getInputTimeNanos());
-                mouseMotionEvents.add(mouseMotionEvent);
-            }
     private void onMouseButton(final long window, final int button, final int action, final int mods) {
         final MouseButtonEvent mouseButtonEvent = new MouseButtonEvent(convertButton(button), action == GLFW_PRESS, mouseX, mouseY);
         mouseButtonEvent.setTime(getInputTimeNanos());
@@ -131,12 +133,31 @@ public class GlfwMouseInput implements MouseInput {
             public void invoke(long window, double xpos, double ypos) {
                 onCursorPos(window, xpos, ypos);
             }
+
+            @Override
+            public void close() {
+                super.close();
+            }
+
+            @Override
+            public void callback(long args) {
+                super.callback(args);
+            }
         });
 
         glfwSetScrollCallback(context.getWindowHandle(), scrollCallback = new GLFWScrollCallback() {
             @Override
             public void invoke(final long window, final double xOffset, final double yOffset) {
                 onWheelScroll(window, xOffset, yOffset * WHEEL_SCALE);
+            }
+            @Override
+            public void close() {
+                super.close();
+            }
+
+            @Override
+            public void callback(long args) {
+                super.callback(args);
             }
         });
 
@@ -145,6 +166,15 @@ public class GlfwMouseInput implements MouseInput {
             public void invoke(final long window, final int button, final int action, final int mods) {
                 onMouseButton(window, button, action, mods);
             }
+            @Override
+            public void close() {
+                super.close();
+            }
+
+            @Override
+            public void callback(long args) {
+                super.callback(args);
+            }
         });
 
         setCursorVisible(cursorVisible);
@@ -152,37 +182,6 @@ public class GlfwMouseInput implements MouseInput {
         initialized = true;
     }
 
-    public void setCursorPosition(int x, int y) {
-        if (!context.isRenderable()) {
-            return;
-        }
-        
-        glfwSetCursorPos(context.getWindowHandle(), x, y);	
-    }
-    
-    public void hideActiveCursor() {
-        if (!context.isRenderable()) {
-            return;
-        }
-
-        if (cursorVisible) {
-            glfwSetInputMode(context.getWindowHandle(), GLFW_CURSOR, GLFW_CURSOR_HIDDEN);            
-        }
-    }
-    
-    public int getLastDeltaX() {
-        return xDelta;
-    }
-    
-    public int getLastDeltaY() {
-        return yDelta;
-    }
-    
-    public void clearDeltas() {
-        xDelta = 0;
-        yDelta = 0;
-    }
-    
     public boolean isInitialized() {
         return initialized;
     }
@@ -206,9 +205,10 @@ public class GlfwMouseInput implements MouseInput {
             return;
         }
 
-        cursorPosCallback.free();
-        scrollCallback.free();
-        mouseButtonCallback.free();
+        cursorPosCallback.close();
+        scrollCallback.close();
+        mouseButtonCallback.close();
+
         for (long glfwCursor : jmeToGlfwCursorMap.values()) {
             glfwDestroyCursor(glfwCursor);
         }
@@ -238,17 +238,35 @@ public class GlfwMouseInput implements MouseInput {
         return (long) (glfwGetTime() * 1000000000);
     }
 
-    private long createGlfwCursor(JmeCursor jmeCursor) {
-        GLFWImage glfwImage = new GLFWImage(BufferUtils.createByteBuffer(GLFWImage.SIZEOF));
+    private ByteBuffer transformCursorImage(IntBuffer imageData, int w, int h) {
+        ByteBuffer buf = BufferUtils.createByteBuffer(imageData.capacity() * 4);
 
+        // Transform image: ARGB -> RGBA, vertical flip
+        for (int y = h-1; y >= 0; --y) {
+            for (int x = 0; x < w; ++x) {
+                int pixel = imageData.get(y*w + x);
+                buf.put((byte) ((pixel >> 16) & 0xFF));  // red
+                buf.put((byte) ((pixel >> 8)  & 0xFF));  // green
+                buf.put((byte) ( pixel        & 0xFF));  // blue
+                buf.put((byte) ((pixel >> 24) & 0xFF));  // alpha
+            }
+        }
+
+        buf.flip();
+        return buf;
+    }
+
+    private long createGlfwCursor(JmeCursor jmeCursor) {
         // TODO: currently animated cursors are not supported
         IntBuffer imageData = jmeCursor.getImagesData();
-        ByteBuffer buf = BufferUtils.createByteBuffer(imageData.capacity() * 4);
-        buf.asIntBuffer().put(imageData);
+        ByteBuffer buf = transformCursorImage(imageData, jmeCursor.getWidth(), jmeCursor.getHeight());
 
+        GLFWImage glfwImage = new GLFWImage(BufferUtils.createByteBuffer(GLFWImage.SIZEOF));
         glfwImage.set(jmeCursor.getWidth(), jmeCursor.getHeight(), buf);
 
-        return glfwCreateCursor(glfwImage, jmeCursor.getXHotSpot(), jmeCursor.getYHotSpot());
+        int hotspotX = jmeCursor.getXHotSpot();
+        int hotspotY = jmeCursor.getHeight() - jmeCursor.getYHotSpot();
+        return glfwCreateCursor(glfwImage, hotspotX, hotspotY);
     }
 
     public void setNativeCursor(JmeCursor jmeCursor) {
@@ -277,11 +295,11 @@ public class GlfwMouseInput implements MouseInput {
     private int convertButton(final int glfwButton) {
         switch (glfwButton) {
             case GLFW_MOUSE_BUTTON_LEFT:
-            return MouseInput.BUTTON_LEFT;
+                return MouseInput.BUTTON_LEFT;
             case GLFW_MOUSE_BUTTON_MIDDLE:
-            return MouseInput.BUTTON_MIDDLE;
+                return MouseInput.BUTTON_MIDDLE;
             case GLFW_MOUSE_BUTTON_RIGHT:
-            return MouseInput.BUTTON_RIGHT;
+                return MouseInput.BUTTON_RIGHT;
             default:
                 return glfwButton;
         }

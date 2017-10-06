@@ -36,13 +36,21 @@ import com.jme3.input.KeyInput;
 import com.jme3.input.RawInputListener;
 import com.jme3.input.event.KeyInputEvent;
 import com.jme3.system.lwjgl.LwjglWindow;
+
+import org.lwjgl.glfw.GLFWCharCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
 
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.logging.Logger;
 
-import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_LAST;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_SPACE;
+import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
+import static org.lwjgl.glfw.GLFW.GLFW_REPEAT;
+import static org.lwjgl.glfw.GLFW.glfwGetTime;
+import static org.lwjgl.glfw.GLFW.glfwSetCharCallback;
+import static org.lwjgl.glfw.GLFW.glfwSetKeyCallback;
 
 public class GlfwKeyInput implements KeyInput {
 
@@ -50,8 +58,9 @@ public class GlfwKeyInput implements KeyInput {
 
     private LwjglWindow context;
     private RawInputListener listener;
-    private boolean initialized, shift_pressed;
+    private boolean initialized;
     private GLFWKeyCallback keyCallback;
+    private GLFWCharCallback charCallback;
     private Queue<KeyInputEvent> keyInputEvents = new LinkedList<KeyInputEvent>();
 
     public GlfwKeyInput(LwjglWindow context) {
@@ -66,21 +75,58 @@ public class GlfwKeyInput implements KeyInput {
         glfwSetKeyCallback(context.getWindowHandle(), keyCallback = new GLFWKeyCallback() {
             @Override
             public void invoke(long window, int key, int scancode, int action, int mods) {
-                scancode = GlfwKeyMap.toJmeKeyCode(key);
-                if( key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT ) {
-                    shift_pressed = (action == GLFW_PRESS);
-                } else if( key >= 'A' && key <= 'Z' && !shift_pressed ) {
-                    key += 32; // make lowercase
-                } else if( key >= 'a' && key <= 'z' && shift_pressed ) {
-                    key -= 32; // make uppercase
+
+                if (key < 0 || key > GLFW_KEY_LAST) {
+                    return;
                 }
-                final KeyInputEvent evt = new KeyInputEvent(scancode, (char) key, GLFW_PRESS == action, GLFW_REPEAT == action);
-                evt.setTime(getInputTimeNanos());
-                keyInputEvents.add(evt);
+
+                int jmeKey = GlfwKeyMap.toJmeKeyCode(key);
+
+                final KeyInputEvent event = new KeyInputEvent(jmeKey, '\0', GLFW_PRESS == action, GLFW_REPEAT == action);
+                event.setTime(getInputTimeNanos());
+
+                keyInputEvents.add(event);
+            }
+
+            @Override
+            public void close() {
+                super.close();
+            }
+
+            @Override
+            public void callback(long args) {
+                super.callback(args);
             }
         });
 
-        glfwSetInputMode(context.getWindowHandle(), GLFW_STICKY_KEYS, 1);
+        glfwSetCharCallback(context.getWindowHandle(), charCallback = new GLFWCharCallback() {
+
+            @Override
+            public void invoke(long window, int codepoint) {
+
+                final char keyChar = (char) codepoint;
+
+                final KeyInputEvent pressed = new KeyInputEvent(KeyInput.KEY_UNKNOWN, keyChar, true, false);
+                pressed.setTime(getInputTimeNanos());
+
+                keyInputEvents.add(pressed);
+
+                final KeyInputEvent released = new KeyInputEvent(KeyInput.KEY_UNKNOWN, keyChar, false, false);
+                released.setTime(getInputTimeNanos());
+
+                keyInputEvents.add(released);
+            }
+
+            @Override
+            public void close() {
+                super.close();
+            }
+
+            @Override
+            public void callback(long args) {
+                super.callback(args);
+            }
+        });
 
         initialized = true;
         logger.fine("Keyboard created.");
@@ -106,7 +152,8 @@ public class GlfwKeyInput implements KeyInput {
             return;
         }
 
-        keyCallback.free();
+        keyCallback.close();
+        charCallback.close();
         logger.fine("Keyboard destroyed.");
     }
 

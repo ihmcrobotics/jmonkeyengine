@@ -32,24 +32,15 @@
 package com.jme3.scene.instancing;
 
 import com.jme3.bounding.BoundingVolume;
-import com.jme3.collision.Collidable;
-import com.jme3.collision.CollisionResults;
 import com.jme3.export.InputCapsule;
 import com.jme3.export.JmeExporter;
 import com.jme3.export.JmeImporter;
 import com.jme3.export.OutputCapsule;
 import com.jme3.export.Savable;
-import com.jme3.material.Material;
 import com.jme3.math.Matrix3f;
 import com.jme3.math.Matrix4f;
 import com.jme3.math.Quaternion;
-import com.jme3.math.Transform;
-import com.jme3.math.Vector3f;
-import com.jme3.renderer.RenderManager;
-import com.jme3.renderer.ViewPort;
-import com.jme3.renderer.queue.RenderQueue.Bucket;
 import com.jme3.scene.Geometry;
-import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.VertexBuffer;
 import com.jme3.scene.VertexBuffer.Format;
@@ -64,15 +55,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class InstancedGeometry extends Geometry {
-    
+
     private static final int INSTANCE_SIZE = 16;
-    
+
     private VertexBuffer[] globalInstanceData;
     private VertexBuffer transformInstanceData;
-    private Geometry[] geometries;
-    private Geometry forceLinkedGeometry;
-    private Node forceRenderControlNode;
-    
+    private Geometry[] geometries = new Geometry[1];
+
     private int firstUnusedIndex = 0;
 
     /**
@@ -84,12 +73,12 @@ public class InstancedGeometry extends Geometry {
         setBatchHint(BatchHint.Never);
         setMaxNumInstances(1);
     }
-    
+
     /**
      * Creates instanced geometry with the specified mode and name.
-     * 
-     * @param name The name of the spatial. 
-     * 
+     *
+     * @param name The name of the spatial.
+     *
      * @see Spatial#Spatial(java.lang.String)
      */
     public InstancedGeometry(String name) {
@@ -98,252 +87,57 @@ public class InstancedGeometry extends Geometry {
         setBatchHint(BatchHint.Never);
         setMaxNumInstances(1);
     }
-    
-    public InstancedGeometry(String name, boolean ignoreTransform, int maxInstances) {
-        super(name);
-        setIgnoreTransform(ignoreTransform);
-        setBatchHint(BatchHint.Never);
-        setMaxNumInstances(maxInstances);        
-    }
-    
-    public void forceLinkedGeometry(Geometry geo) {
-        forceLinkedGeometry = geo;
-    }
-    
-    public void forceRenderControlNode(Node node) {
-        forceRenderControlNode = node;
-    }
-            
-    public Node getRenderControlNode() {
-        return forceRenderControlNode;
-    }
-    
-    public Geometry getLinkedGeometry() {
-        return forceLinkedGeometry;
-    }
-    
-    @Override
-    public int collideWith(Collidable other, CollisionResults results) {
-        if( forceLinkedGeometry != null ) {
-            return 0; // do collisions with forcedlinkedgeometry instead
-        }
-        return super.collideWith(other, results);
-    }
 
-    @Override
-    public Vector3f getLocalTranslation() {
-        if( forceLinkedGeometry != null ) {
-            return forceLinkedGeometry.getLocalTranslation();
-        }
-        return super.getLocalTranslation();        
-    }
-    
-    @Override
-    public Vector3f getLocalScale() {
-        if( forceLinkedGeometry != null ) {
-            return forceLinkedGeometry.getLocalScale();
-        }
-        return super.getLocalScale();        
-    }
-    
-    @Override
-    public Quaternion getLocalRotation() {
-        if( forceLinkedGeometry != null ) {
-            return forceLinkedGeometry.getLocalRotation();
-        }
-        return super.getLocalRotation();        
-    }
-    
-    @Override
-    public Quaternion getWorldRotation() {
-        if( forceLinkedGeometry != null ) {
-            return forceLinkedGeometry.getWorldRotation();
-        }
-        return super.getWorldRotation();        
-    }
-    
-    @Override
-    public Vector3f getWorldTranslation() {
-        if( forceLinkedGeometry != null ) {
-            return forceLinkedGeometry.getWorldTranslation();
-        }
-        return super.getWorldTranslation();        
-    }
-
-    @Override
-    public Vector3f getWorldScale() {
-        if( forceLinkedGeometry != null ) {
-            return forceLinkedGeometry.getWorldScale();
-        }
-        return super.getWorldScale();        
-    }
-
-    @Override
-    public void updateLogicalState(float tpf) {
-        if( forceLinkedGeometry != null ) return;
-        super.updateLogicalState(tpf);        
-    }
-    
-    @Override
-    public void updateGeometricState() {
-        if( forceLinkedGeometry != null ) {
-            return;
-        }
-        super.updateGeometricState();        
-    }
-    
-    @Override
-    public Transform getLocalTransform() {
-        if( forceLinkedGeometry != null ) {
-            return forceLinkedGeometry.getLocalTransform();
-        }
-        return super.getLocalTransform();                
-    }
-    
-    @Override
-    public Bucket getQueueBucket() {
-        if( forceLinkedGeometry != null ) {
-            return forceLinkedGeometry.getQueueBucket();
-        }
-        return super.getQueueBucket();                        
-    }
-    
-    @Override
-    public Transform getWorldTransform() {
-        if( forceLinkedGeometry != null ) {
-            return forceLinkedGeometry.getWorldTransform();
-        }
-        return super.getWorldTransform();                                
-    }
-    
-    @Override
-    public Material getMaterial() {
-        if( forceLinkedGeometry != null ) {
-            return forceLinkedGeometry.getMaterial();
-        }
-        return super.getMaterial();
-    }
-
-    public boolean forcedGeometryMatrialMismatch() {
-        if( forceLinkedGeometry == null ) return false;
-        Material flgm = forceLinkedGeometry.getMaterial();
-        if( flgm != material ) {
-            material = flgm;
-            return true;
-        }
-        return false;
-    }
-    
-    @Override
-    public CullHint getCullHint() {
-        if( forceLinkedGeometry != null ) {
-            return forceLinkedGeometry.getCullHint();
-        }
-        return super.getCullHint();
-    }
-    
-    @Override
-    public Matrix4f getWorldMatrix() {
-        if( forceLinkedGeometry != null ) {
-            return forceLinkedGeometry.getWorldMatrix();
-        }
-        return super.getWorldMatrix();        
-    }        
-    
-    @Override
-    public BoundingVolume getWorldBound() {
-        if( forceLinkedGeometry != null ) {
-            return forceLinkedGeometry.getWorldBound();
-        }
-        return super.getWorldBound();
-    }
-    
-    @Override
-    protected void updateWorldBound() {
-        if( forceLinkedGeometry != null ) return;
-        super.updateWorldBound();
-    }    
-    
-    @Override
-    public void updateModelBound() {
-        if( forceLinkedGeometry != null ) return;
-        super.updateModelBound();
-    }
-    
-    @Override
-    public BoundingVolume getModelBound() {
-        if( forceLinkedGeometry != null ) {
-            return forceLinkedGeometry.getModelBound();
-        }
-        return super.getModelBound();
-    }
-    
-    @Override
-    public void runControlRender(RenderManager rm, ViewPort vp) {
-        if( forceRenderControlNode != null ) {
-            forceRenderControlNode.runControlRender(rm, vp);
-        } else if( forceLinkedGeometry != null ) {
-            forceLinkedGeometry.runControlRender(rm, vp);
-        } else super.runControlRender(rm, vp);
-    }
-    
     /**
-     * Global user specified per-instance data. 
-     * 
+     * Global user specified per-instance data.
+     *
      * By default set to <code>null</code>, specify an array of VertexBuffers
      * via {@link #setGlobalUserInstanceData(com.jme3.scene.VertexBuffer[]) }.
-     * 
-     * @return global user specified per-instance data. 
-     * @see #setGlobalUserInstanceData(com.jme3.scene.VertexBuffer[]) 
+     *
+     * @return global user specified per-instance data.
+     * @see #setGlobalUserInstanceData(com.jme3.scene.VertexBuffer[])
      */
     public VertexBuffer[] getGlobalUserInstanceData() {
         return globalInstanceData;
     }
-    
+
     /**
      * Specify global user per-instance data.
-     * 
+     *
      * By default set to <code>null</code>, specify an array of VertexBuffers
      * that contain per-instance vertex attributes.
-     * 
+     *
      * @param globalInstanceData global user per-instance data.
-     * 
-     * @throws IllegalArgumentException If one of the VertexBuffers is not 
+     *
+     * @throws IllegalArgumentException If one of the VertexBuffers is not
      * {@link VertexBuffer#setInstanced(boolean) instanced}.
      */
     public void setGlobalUserInstanceData(VertexBuffer[] globalInstanceData) {
         this.globalInstanceData = globalInstanceData;
     }
-    
+
     /**
      * Specify camera specific user per-instance data.
-     * 
+     *
      * @param transformInstanceData The transforms for each instance.
      */
     public void setTransformUserInstanceData(VertexBuffer transformInstanceData) {
         this.transformInstanceData = transformInstanceData;
     }
-    
+
     /**
      * Return user per-instance transform data.
-     * 
+     *
      * @return The per-instance transform data.
      *
-     * @see #setTransformUserInstanceData(com.jme3.scene.VertexBuffer) 
+     * @see #setTransformUserInstanceData(com.jme3.scene.VertexBuffer)
      */
     public VertexBuffer getTransformUserInstanceData() {
         return transformInstanceData;
     }
-    
-    private void quickFromRotation(Quaternion quat, Matrix3f m1) {
-        float w = (float)Math.sqrt(1f + m1.m00 + m1.m11 + m1.m22) / 2f;
-	float w4 = (4f * w);
-	quat.set((m1.m21 - m1.m12) / w4,
-                 (m1.m02 - m1.m20) / w4,
-                 (m1.m10 - m1.m01) / w4, w);
-    }
-    private void updateInstance(Matrix4f worldMatrix, float[] store, 
-                                int offset, Matrix3f tempMat3, 
+
+    private void updateInstance(Matrix4f worldMatrix, float[] store,
+                                int offset, Matrix3f tempMat3,
                                 Quaternion tempQuat) {
         worldMatrix.toRotationMatrix(tempMat3);
         tempMat3.invertLocal();
@@ -351,7 +145,7 @@ public class InstancedGeometry extends Geometry {
         // NOTE: No need to take the transpose in order to encode
         // into quaternion, the multiplication in the shader is vec * quat
         // apparently...
-        quickFromRotation(tempQuat, tempMat3);
+        tempQuat.fromRotationMatrix(tempMat3);
 
         // Column-major encoding. The "W" field in each of the encoded
         // vectors represents the quaternion.
@@ -372,17 +166,17 @@ public class InstancedGeometry extends Geometry {
         store[offset + 14] = worldMatrix.m23;
         store[offset + 15] = tempQuat.getW();
     }
-    
+
     /**
      * Set the maximum amount of instances that can be rendered by this
      * instanced geometry when mode is set to auto.
-     * 
+     *
      * This re-allocates internal structures and therefore should be called
-     * only when necessary. 
-     * 
+     * only when necessary.
+     *
      * @param maxNumInstances The maximum number of instances that can be
      * rendered.
-     * 
+     *
      * @throws IllegalStateException If mode is set to manual.
      * @throws IllegalArgumentException If maxNumInstances is zero or negative
      */
@@ -390,14 +184,14 @@ public class InstancedGeometry extends Geometry {
         if (maxNumInstances < 1) {
             throw new IllegalArgumentException("maxNumInstances must be 1 or higher");
         }
-        
+
         Geometry[] originalGeometries = geometries;
         this.geometries = new Geometry[maxNumInstances];
-        
+
         if (originalGeometries != null) {
             System.arraycopy(originalGeometries, 0, geometries, 0, originalGeometries.length);
         }
-        
+
         // Resize instance data.
         if (transformInstanceData != null) {
             BufferUtils.destroyDirectBuffer(transformInstanceData.getData());
@@ -411,7 +205,7 @@ public class InstancedGeometry extends Geometry {
                     BufferUtils.createFloatBuffer(geometries.length * INSTANCE_SIZE));
         }
     }
-    
+
     public int getMaxNumInstances() {
         return geometries.length;
     }
@@ -419,12 +213,12 @@ public class InstancedGeometry extends Geometry {
     public int getActualNumInstances() {
         return firstUnusedIndex;
     }
-    
+
     private void swap(int idx1, int idx2) {
         Geometry g = geometries[idx1];
         geometries[idx1] = geometries[idx2];
         geometries[idx2] = g;
-        
+
         if (geometries[idx1] != null) {
             InstancedNode.setGeometryStartIndex2(geometries[idx1], idx1);
         }
@@ -432,7 +226,7 @@ public class InstancedGeometry extends Geometry {
             InstancedNode.setGeometryStartIndex2(geometries[idx2], idx2);
         }
     }
-    
+
     private void sanitize(boolean insideEntriesNonNull) {
         if (firstUnusedIndex >= geometries.length) {
             throw new AssertionError();
@@ -442,7 +236,7 @@ public class InstancedGeometry extends Geometry {
                 if (geometries[i] == null) {
                     if (insideEntriesNonNull) {
                         throw new AssertionError();
-                    }  
+                    }
                 } else if (InstancedNode.getGeometryStartIndex2(geometries[i]) != i) {
                     throw new AssertionError();
                 }
@@ -453,55 +247,55 @@ public class InstancedGeometry extends Geometry {
             }
         }
     }
-    
+
     public void updateInstances() {
         FloatBuffer fb = (FloatBuffer) transformInstanceData.getData();
         fb.limit(fb.capacity());
         fb.position(0);
-        
+
         TempVars vars = TempVars.get();
         {
             float[] temp = vars.matrixWrite;
-            
+
             for (int i = 0; i < firstUnusedIndex; i++) {
                 Geometry geom = geometries[i];
 
                 if (geom == null) {
                     geom = geometries[firstUnusedIndex - 1];
-                    
+
                     if (geom == null) {
                         throw new AssertionError();
                     }
-                    
+
                     swap(i, firstUnusedIndex - 1);
-                    
+
                     while (geometries[firstUnusedIndex -1] == null) {
                         firstUnusedIndex--;
                     }
                 }
-                
+
                 Matrix4f worldMatrix = geom.getWorldMatrix();
                 updateInstance(worldMatrix, temp, 0, vars.tempMat3, vars.quat1);
                 fb.put(temp);
             }
         }
         vars.release();
-        
+
         fb.flip();
-        
+
         if (fb.limit() / INSTANCE_SIZE != firstUnusedIndex) {
             throw new AssertionError();
         }
 
         transformInstanceData.updateData(fb);
     }
-    
+
     public void deleteInstance(Geometry geom) {
         int idx = InstancedNode.getGeometryStartIndex2(geom);
         InstancedNode.setGeometryStartIndex2(geom, -1);
-        
+
         geometries[idx] = null;
-        
+
         if (idx == firstUnusedIndex - 1) {
             // Deleting the last element.
             // Move index back.
@@ -516,13 +310,14 @@ public class InstancedGeometry extends Geometry {
         } else {
             // Deleting element in the middle
         }
+        setBoundRefresh();
     }
-    
+
     public void addInstance(Geometry geometry) {
         if (geometry == null) {
             throw new IllegalArgumentException("geometry cannot be null");
         }
-       
+
         // Take an index from the end.
         if (firstUnusedIndex + 1 >= geometries.length) {
             // No more room.
@@ -531,15 +326,40 @@ public class InstancedGeometry extends Geometry {
 
         int freeIndex = firstUnusedIndex;
         firstUnusedIndex++;
-        
+
         geometries[freeIndex] = geometry;
         InstancedNode.setGeometryStartIndex2(geometry, freeIndex);
+        setBoundRefresh();
     }
-    
+
+    @Override
+    protected void updateWorldBound() {
+        refreshFlags &= ~RF_BOUND;
+        BoundingVolume resultBound = null;
+
+        for (int i = 0; i < firstUnusedIndex; i++) {
+            Geometry geom = geometries[i];
+
+            if (geom != null) {
+                if (resultBound != null) {
+                    // merge current world bound with child world bound
+                    resultBound.mergeLocal(geom.getWorldBound());
+                } else {
+                    // set world bound to first non-null child world bound
+                    if (geom.getWorldBound() != null) {
+                        resultBound = geom.getWorldBound().clone(this.worldBound);
+                    }
+                }
+            }
+        }
+
+        this.worldBound = resultBound;
+    }
+
     public Geometry[] getGeometries() {
         return geometries;
     }
-    
+
     public VertexBuffer[] getAllInstanceData() {
         ArrayList<VertexBuffer> allData = new ArrayList();
         if (transformInstanceData != null) {
@@ -570,7 +390,7 @@ public class InstancedGeometry extends Geometry {
         //capsule.write(currentNumInstances, "cur_num_instances", 1);
         capsule.write(geometries, "geometries", null);
     }
-    
+
     @Override
     public void read(JmeImporter importer) throws IOException {
         super.read(importer);

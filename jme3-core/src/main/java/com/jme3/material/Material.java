@@ -535,24 +535,7 @@ public class Material implements CloneableSmartAsset, Cloneable, Savable {
         checkSetParam(type, name);
         MatParamTexture val = getTextureParam(name);
         if (val == null) {
-            MatParamTexture paramDef = (MatParamTexture) def.getMaterialParam(name);
-            if (paramDef.getColorSpace() != null && paramDef.getColorSpace() != value.getImage().getColorSpace()) {
-                value.getImage().setColorSpace(paramDef.getColorSpace());
-                logger.log(Level.FINE, "Material parameter {0} needs a {1} texture, "
-                        + "texture {2} was switched to {3} color space.",
-                        new Object[]{name, paramDef.getColorSpace().toString(),
-                            value.getName(),
-                            value.getImage().getColorSpace().name()});
-            } else if (paramDef.getColorSpace() == null && value.getName() != null && value.getImage().getColorSpace() == ColorSpace.Linear) {
-                logger.log(Level.WARNING,
-                        "The texture {0} has linear color space, but the material "
-                        + "parameter {2} specifies no color space requirement, this may "
-                        + "lead to unexpected behavior.\nCheck if the image "
-                        + "was not set to another material parameter with a linear "
-                        + "color space, or that you did not set the ColorSpace to "
-                        + "Linear using texture.getImage.setColorSpace().",
-                        new Object[]{value.getName(), value.getImage().getColorSpace().name(), name});
-            }
+            checkTextureParamColorSpace(name, value);
             paramValues.put(name, new MatParamTexture(type, name, value, null));
         } else {
             val.setTextureValue(value);
@@ -564,6 +547,27 @@ public class Material implements CloneableSmartAsset, Cloneable, Savable {
 
         // need to recompute sort ID
         sortingId = -1;
+    }
+
+    private void checkTextureParamColorSpace(String name, Texture value) {
+        MatParamTexture paramDef = (MatParamTexture) def.getMaterialParam(name);
+        if (paramDef.getColorSpace() != null && paramDef.getColorSpace() != value.getImage().getColorSpace()) {
+            value.getImage().setColorSpace(paramDef.getColorSpace());
+            logger.log(Level.FINE, "Material parameter {0} needs a {1} texture, "
+                            + "texture {2} was switched to {3} color space.",
+                    new Object[]{name, paramDef.getColorSpace().toString(),
+                            value.getName(),
+                            value.getImage().getColorSpace().name()});
+        } else if (paramDef.getColorSpace() == null && value.getName() != null && value.getImage().getColorSpace() == ColorSpace.Linear) {
+            logger.log(Level.WARNING,
+                    "The texture {0} has linear color space, but the material "
+                            + "parameter {2} specifies no color space requirement, this may "
+                            + "lead to unexpected behavior.\nCheck if the image "
+                            + "was not set to another material parameter with a linear "
+                            + "color space, or that you did not set the ColorSpace to "
+                            + "Linear using texture.getImage.setColorSpace().",
+                    new Object[]{value.getName(), value.getImage().getColorSpace().name(), name});
+        }
     }
 
     /**
@@ -710,7 +714,7 @@ public class Material implements CloneableSmartAsset, Cloneable, Savable {
      * @throws UnsupportedOperationException If no candidate technique supports
      * the system capabilities.
      */
-    public void selectTechnique(String name, RenderManager renderManager) {
+    public void selectTechnique(String name, final RenderManager renderManager) {
         // check if already created
         Technique tech = techniques.get(name);
         // When choosing technique, we choose one that
@@ -718,21 +722,20 @@ public class Material implements CloneableSmartAsset, Cloneable, Savable {
         if (tech == null) {
             EnumSet<Caps> rendererCaps = renderManager.getRenderer().getCaps();
             List<TechniqueDef> techDefs = def.getTechniqueDefs(name);
-
             if (techDefs == null || techDefs.isEmpty()) {
                 throw new IllegalArgumentException(
                         String.format("The requested technique %s is not available on material %s", name, def.getName()));
             }
 
             TechniqueDef lastTech = null;
+            float weight = 0;
             for (TechniqueDef techDef : techDefs) {
                 if (rendererCaps.containsAll(techDef.getRequiredCaps())) {
-                    // use the first one that supports all the caps
-                    tech = new Technique(this, techDef);
-                    techniques.put(name, tech);
-                    if (tech.getDef().getLightMode() == renderManager.getPreferredLightMode()
-                            || tech.getDef().getLightMode() == LightMode.Disable) {
-                        break;
+                    float techWeight = techDef.getWeight() + (techDef.getLightMode() == renderManager.getPreferredLightMode() ? 10f : 0);
+                    if (techWeight > weight) {
+                        tech = new Technique(this, techDef);
+                        techniques.put(name, tech);
+                        weight = techWeight;
                     }
                 }
                 lastTech = techDef;
@@ -744,6 +747,7 @@ public class Material implements CloneableSmartAsset, Cloneable, Savable {
                                 + "The capabilities %s are required.",
                                 name, def.getName(), lastTech.getRequiredCaps()));
             }
+            logger.log(Level.FINE, this.getMaterialDef().getName() + " selected technique def " + tech.getDef());
         } else if (technique == tech) {
             // attempting to switch to an already
             // active technique.
@@ -787,7 +791,7 @@ public class Material implements CloneableSmartAsset, Cloneable, Savable {
     }
 
     private int updateShaderMaterialParameters(Renderer renderer, Shader shader,
-                 SafeArrayList<MatParamOverride> worldOverrides, SafeArrayList<MatParamOverride> forcedOverrides) {
+                                               SafeArrayList<MatParamOverride> worldOverrides, SafeArrayList<MatParamOverride> forcedOverrides) {
 
         int unit = 0;
         if (worldOverrides != null) {
@@ -969,8 +973,6 @@ public class Material implements CloneableSmartAsset, Cloneable, Savable {
         renderManager.updateUniformBindings(shader);
         
         // Set material parameters
-
-        //TODO RRemove the unit when texture units are handled in the Uniform
         int unit = updateShaderMaterialParameters(renderer, shader, overrides, renderManager.getForcedMatParams());
 
         // Clear any uniforms not changed by material.
@@ -1072,6 +1074,7 @@ public class Material implements CloneableSmartAsset, Cloneable, Savable {
                 if (texVal.getTextureValue() == null || texVal.getTextureValue().getImage() == null) {
                     continue;
                 }
+                checkTextureParamColorSpace(texVal.getName(), texVal.getTextureValue());
             }
 
             if (im.getFormatVersion() == 0 && param.getName().startsWith("m_")) {

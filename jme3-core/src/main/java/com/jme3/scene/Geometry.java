@@ -138,6 +138,20 @@ public class Geometry extends Spatial {
     }
 
     /**
+     * Update the world transform of this Geometry and clear the
+     * TRANSFORM refresh flag.
+     */
+    @Override
+    void checkDoTransformUpdate() {
+        if (ignoreTransform) {
+            worldTransform.loadIdentity();
+            refreshFlags &= ~RF_TRANSFORM;
+        } else {
+            super.checkDoTransformUpdate();
+        }    
+    }
+    
+    /**
      * @return If ignoreTransform mode is set.
      *
      * @see Geometry#setIgnoreTransform(boolean)
@@ -151,6 +165,7 @@ public class Geometry extends Spatial {
      */
     public void setIgnoreTransform(boolean ignoreTransform) {
         this.ignoreTransform = ignoreTransform;
+        setTransformRefresh();
     }
 
     /**
@@ -506,6 +521,7 @@ public class Geometry extends Spatial {
     /**
      *  The old clone() method that did not use the new Cloner utility.
      */
+    @Override
     public Geometry oldClone(boolean cloneMaterial) {
         Geometry geomClone = (Geometry) super.clone(cloneMaterial);
 
