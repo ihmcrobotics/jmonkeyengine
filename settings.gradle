@@ -26,6 +26,7 @@ include 'jme3-niftygui'
 include 'jme3-jogg'
 include 'jme3-android'
 include 'jme3-ios'
+include 'jme3-dae'
 
 //native builds
 include 'jme3-bullet' //java
