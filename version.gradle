@@ -155,7 +155,7 @@ task configureVersionInfo {
                 jmePomVersion  += "-${jmeBranchName}"
             }
             jmeFullVersion += "-${jmeRevision}"
-            jmePomVersion  += "-171122"
+            jmePomVersion  += "-171128"
         }
 
         logger.warn("Full Version: ${jmeFullVersion}")
