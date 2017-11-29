@@ -154,7 +154,7 @@ public class MaterialLoader implements AssetLoader {
 
         TextureKey texKey = new TextureKey(folderName + path, true);
         texKey.setGenerateMips(genMips);
-        texKey.setAsCube(cubic);
+//        texKey.setAsCube(cubic);
         
         Texture loadedTexture = null;
         try {
@@ -163,7 +163,7 @@ public class MaterialLoader implements AssetLoader {
          catch (AssetNotFoundException ex){
            texKey = new TextureKey(folderName + "../textures/" + path, true);
            texKey.setGenerateMips(genMips);
-           texKey.setAsCube(cubic);
+//           texKey.setAsCube(cubic);
            try
            {
               loadedTexture = assetManager.loadTexture(texKey);
@@ -172,7 +172,7 @@ public class MaterialLoader implements AssetLoader {
            {
               texKey = new TextureKey(path, true);
               texKey.setGenerateMips(genMips);
-              texKey.setAsCube(cubic);
+//              texKey.setAsCube(cubic);
               try
               {
                  loadedTexture = assetManager.loadTexture(texKey);

@@ -76,7 +76,7 @@ public class MaterialExtensionLoader {
 
             TextureKey texKey = new TextureKey(texturePath, false);
             texKey.setGenerateMips(true);
-            texKey.setAsCube(false);
+//            texKey.setAsCube(false);
             Texture tex;
             
             try {
