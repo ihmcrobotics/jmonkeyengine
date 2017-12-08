@@ -138,7 +138,7 @@ task configureVersionInfo {
         } else {
             // SNAPSHOT
             jmeFullVersion = jmeMainVersion
-            jmePomVersion  = "NIGHTLY"
+            jmePomVersion  = jmeVersion
             if (System.env.TRAVIS_BRANCH != null) {
                 jmeBranchName = System.env.TRAVIS_BRANCH
             } else if (System.env.APPVEYOR_REPO_BRANCH != null) {
@@ -155,7 +155,7 @@ task configureVersionInfo {
                 jmePomVersion  += "-${jmeBranchName}"
             }
             jmeFullVersion += "-${jmeRevision}"
-            jmePomVersion  += "-" + project.property("jmeVersionTag")
+            jmePomVersion  += "-" + jmeVersionTag
         }
 
         logger.warn("Full Version: ${jmeFullVersion}")
