@@ -280,7 +280,7 @@ public final class OBJLoader implements AssetLoader {
         }
 
         if (vertList.size() > 4 || vertList.size() <= 2) {
-            logger.warning("Edge or polygon detected in OBJ. Ignored.");
+            logger.warning("Edge or polygon detected in OBJ. Ignored. Filename: " + objName);
             return;
         }
 
