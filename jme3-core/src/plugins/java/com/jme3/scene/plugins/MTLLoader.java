@@ -133,12 +133,23 @@ public class MTLLoader implements AssetLoader {
             material.setTexture("ColorMap", diffuseMap);
             // TODO: Add handling for alpha map?
         }else{
+           
             material = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-            material.setBoolean("UseMaterialColors", true);
+            
+            
+            // If there are textures, do not use material colors
+            boolean useMaterialColors = true;
+            if(diffuseMap != null || specularMap != null)
+            {
+               useMaterialColors = false;
+            }
+            
+            material.setBoolean("UseMaterialColors", useMaterialColors);
             material.setColor("Ambient",  ambient.clone());
             material.setColor("Diffuse",  diffuse.clone());
             material.setColor("Specular", specular.clone());
             material.setFloat("Shininess", shininess); // prevents "premature culling" bug
+            
             
             if (diffuseMap != null)  material.setTexture("DiffuseMap", diffuseMap);
             if (specularMap != null) material.setTexture("SpecularMap", specularMap);
@@ -274,9 +285,10 @@ public class MTLLoader implements AssetLoader {
                     transparent = true;
                     break;
             }
-        }else if (cmd.equals("ke") || cmd.equals("ni")){
+        }else if (cmd.equals("ke") || cmd.equals("ni") || cmd.contentEquals("tf")){
             // Ni: index of refraction - unsupported in jME
             // Ke: emission color
+            // Tf: Transmission filter
             return skipLine();
         }else{
             logger.log(Level.WARNING, "Unknown statement in MTL! {0}", cmd);
